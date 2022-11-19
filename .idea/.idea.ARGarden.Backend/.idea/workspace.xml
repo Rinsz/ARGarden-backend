@@ -5,16 +5,20 @@
     <projectFile profileName="IIS Express">ARGarden.Backend/ARGarden.Backend.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ccfa65e5-e593-47d3-bbec-07094d719a41" name="Changes" comment="init project" />
+    <list default="true" id="ccfa65e5-e593-47d3-bbec-07094d719a41" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.ARGarden.Backend/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.ARGarden.Backend/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend.sln" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend/ARGarden.Backend.csproj" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend/Program.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend/Properties/launchSettings.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend/appsettings.Development.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARGarden.Backend/appsettings.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
-  </component>
-  <component name="ChangesViewManager">
-    <option name="groupingKeys">
-      <option value="directory" />
-    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -34,7 +38,6 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
     "app.teamhub.trackedBranches": "uqnt9/main",
-    "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
@@ -79,16 +82,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1668843249207</updated>
-      <workItem from="1668843252609" duration="1307000" />
+      <workItem from="1668843252609" duration="1002000" />
     </task>
-    <task id="LOCAL-00001" summary="init project">
-      <created>1668844573527</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1668844573527</updated>
-    </task>
-    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -109,7 +104,5 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="init project" />
-    <option name="LAST_COMMIT_MESSAGE" value="init project" />
   </component>
 </project>
