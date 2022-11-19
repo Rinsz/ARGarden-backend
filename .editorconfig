@@ -1,0 +1,12 @@
+[*]
+indent_style = space
+
+[*.{cs,tt}]
+indent_size = 4
+max_line_length = 140
+
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmainfest,vsct}]
+indent_size = 2
