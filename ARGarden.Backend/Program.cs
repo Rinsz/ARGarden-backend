@@ -1,4 +1,4 @@
-using ARGarden.Backend.Extensions;
+using ThreeXyNine.ARGarden.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,10 +1,9 @@
-using ARGarden.Backend.Errors;
-using ARGarden.Backend.Models;
-using ARGarden.Backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using SystemFile = System.IO.File;
+using ThreeXyNine.ARGarden.Api.Errors;
+using ThreeXyNine.ARGarden.Api.Models;
+using ThreeXyNine.ARGarden.Api.Repositories;
 
-namespace ARGarden.Backend.Controllers;
+namespace ThreeXyNine.ARGarden.Api.Controllers;
 
 [ApiController]
 [Route("api/models")]

@@ -1,8 +1,8 @@
-﻿using ARGarden.Backend.Errors;
-using ARGarden.Backend.Models;
-using Kontur.Results;
+﻿using Kontur.Results;
+using ThreeXyNine.ARGarden.Api.Errors;
+using ThreeXyNine.ARGarden.Api.Models;
 
-namespace ARGarden.Backend.Repositories;
+namespace ThreeXyNine.ARGarden.Api.Repositories;
 
 public interface IModelsRepository
 {

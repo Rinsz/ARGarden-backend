@@ -1,9 +1,9 @@
-﻿using ARGarden.Backend.Errors;
-using ARGarden.Backend.Models;
-using ARGarden.Backend.Settings;
-using Kontur.Results;
+﻿using Kontur.Results;
+using ThreeXyNine.ARGarden.Api.Errors;
+using ThreeXyNine.ARGarden.Api.Models;
+using ThreeXyNine.ARGarden.Api.Settings;
 
-namespace ARGarden.Backend.Repositories;
+namespace ThreeXyNine.ARGarden.Api.Repositories;
 
 [PrimaryConstructor]
 public partial class FileSystemModelsRepository : IModelsRepository

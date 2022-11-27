@@ -1,4 +1,4 @@
-﻿namespace ARGarden.Backend.Errors;
+﻿namespace ThreeXyNine.ARGarden.Api.Errors;
 
 public enum ApiErrorType
 {

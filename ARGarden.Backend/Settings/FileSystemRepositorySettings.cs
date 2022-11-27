@@ -1,3 +1,3 @@
-﻿namespace ARGarden.Backend.Settings;
+﻿namespace ThreeXyNine.ARGarden.Api.Settings;
 
 public record FileSystemRepositorySettings(string StoragePath);

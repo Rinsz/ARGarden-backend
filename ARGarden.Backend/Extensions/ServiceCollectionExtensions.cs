@@ -1,8 +1,8 @@
-﻿using ARGarden.Backend.Repositories;
-using ARGarden.Backend.Settings;
-using Microsoft.Extensions.Configuration.EnvironmentVariables;
+﻿using Microsoft.Extensions.Configuration.EnvironmentVariables;
+using ThreeXyNine.ARGarden.Api.Repositories;
+using ThreeXyNine.ARGarden.Api.Settings;
 
-namespace ARGarden.Backend.Extensions;
+namespace ThreeXyNine.ARGarden.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {

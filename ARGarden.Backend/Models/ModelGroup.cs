@@ -1,4 +1,4 @@
-﻿namespace ARGarden.Backend.Models;
+﻿namespace ThreeXyNine.ARGarden.Api.Models;
 
 public enum ModelGroup
 {
