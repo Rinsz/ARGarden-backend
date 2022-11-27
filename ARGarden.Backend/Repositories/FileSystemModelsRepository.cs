@@ -15,16 +15,16 @@ public partial class FileSystemModelsRepository : IModelsRepository
     {
         var metasStub = new[]
             {
-                new Guid("e7338f32-37ca-483c-9cf4-840253d75f72"),
-                new Guid("6b6b6010-9fdb-40ac-905d-998732b30f20"),
-                new Guid("70d008dd-0fcc-4985-806e-cfafd86d0476"),
+                (Id: new Guid("e7338f32-37ca-483c-9cf4-840253d75f72"), Num: 0),
+                (Id: new Guid("6b6b6010-9fdb-40ac-905d-998732b30f20"), Num: 1),
+                (Id: new Guid("70d008dd-0fcc-4985-806e-cfafd86d0476"), Num: 2),
             }
             .Skip(skip)
             .Take(take)
-            .Select((id, num) => new ModelMeta(
-                id,
-                $"Server model {num}",
-                (ModelGroup)Math.Abs(id.GetHashCode() % (Enum.GetNames<ModelGroup>().Length - 1)),
+            .Select(descriptor => new ModelMeta(
+                descriptor.Id,
+                $"Server model {descriptor.Num}",
+                (ModelGroup)Math.Abs(descriptor.Id.GetHashCode() % (Enum.GetNames<ModelGroup>().Length - 1)),
                 0));
 
         return Task.FromResult(Result<ModelsRepositoryError, IEnumerable<ModelMeta>>.Succeed(metasStub));
