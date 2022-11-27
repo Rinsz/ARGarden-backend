@@ -7,7 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3"/>
+    <PackageReference Include="Kontur.Results" Version="1.0.1" />
+    <PackageReference Include="Kontur.Results.Monad" Version="1.0.1" />
+    <PackageReference Include="PrimaryConstructor" Version="1.4.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
 
 </Project>
