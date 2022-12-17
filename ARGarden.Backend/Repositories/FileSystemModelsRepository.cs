@@ -30,8 +30,8 @@ public partial class FileSystemModelsRepository : IModelsRepository
         }
         catch (Exception e)
         {
-            this.logger.LogError(e, "Failed to get model versions.");
-            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model versions.");
+            this.logger.LogError(e, "Failed to get model metas.");
+            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model metas.");
         }
     }
 
