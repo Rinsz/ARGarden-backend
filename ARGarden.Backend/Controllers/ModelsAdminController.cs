@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
+using ThreeXyNine.ARGarden.Api.Models;
 
 namespace ThreeXyNine.ARGarden.Api.Controllers;
 
@@ -8,6 +9,15 @@ namespace ThreeXyNine.ARGarden.Api.Controllers;
 [Route("api/admin/models")]
 public class ModelsAdminController : ControllerBase
 {
+    private const string AssetBundleContentType = "application/unity3d";
+
+    private static readonly IReadOnlySet<string> SupportedImageContentTypes = new HashSet<string>
+    {
+        "image/jpg",
+        "image/jpeg",
+        "image/png",
+    };
+
     private readonly IModelsRepository modelsRepository;
     private readonly ILogger<ModelsAdminController> logger;
 
@@ -15,6 +25,30 @@ public class ModelsAdminController : ControllerBase
     {
         this.modelsRepository = modelsRepository;
         this.logger = logger;
+    }
+
+    [HttpPost("new")]
+    public async Task<ActionResult> CreateModelAsync(CreateModelRequest request)
+    {
+        var (modelName, modelGroup, modelImage, modelBundle) = request;
+        if (!SupportedImageContentTypes.Contains(modelImage.ContentType))
+        {
+            return this.ValidationProblem("Unsupported image type received");
+        }
+
+        if (modelBundle.ContentType != AssetBundleContentType)
+        {
+            return this.ValidationProblem("Unsupported file received as asset bundle");
+        }
+
+        await using var modelImageStream = modelImage.OpenReadStream();
+        await using var modelBundleStream = modelBundle.OpenReadStream();
+        var createModelResult = await this.modelsRepository.CreateModelAsync(modelName, modelGroup, modelImageStream, modelBundleStream)
+            .ConfigureAwait(false);
+
+        return createModelResult.TryGetFault(out var fault, out var result)
+            ? this.ConvertFaultToActionResult(fault)
+            : this.Created(new Uri($"api/models/bundles/{result.Id}/0"), result);
     }
 
     [HttpDelete("delete/{modelId:guid}")]

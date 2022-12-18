@@ -10,6 +10,8 @@ namespace ThreeXyNine.ARGarden.Api.Repositories;
 [PrimaryConstructor]
 public partial class FileSystemModelsRepository : IModelsRepository
 {
+    private const string Unity3dExtension = ".unity3d";
+
     private readonly FileSystemRepositorySettingsProvider settingsProvider;
     private readonly IMongoCollectionProvider<ModelMeta> mongoCollectionProvider;
     private readonly ILogger<FileSystemModelsRepository> logger;
@@ -66,7 +68,7 @@ public partial class FileSystemModelsRepository : IModelsRepository
         await this.GetFileBytesFromModelFolderAsync(
                 modelId,
                 version,
-                $"{modelId}.unity3d",
+                $"{modelId}{Unity3dExtension}",
                 $"Bundle for model {modelId} with version {version} is not found.")
             .ConfigureAwait(false);
 
@@ -86,13 +88,44 @@ public partial class FileSystemModelsRepository : IModelsRepository
 
         var modelRootDirectoryResult = this.GetStorageDirectory()
             .Then(sd => GetModelRootDirectory(sd, modelId));
-        if (modelRootDirectoryResult.TryGetFault(out var fault, out var modelRootDirectory))
+        if (modelRootDirectoryResult.TryGetFault(out _, out var modelRootDirectory))
         {
-            return Result<ModelsRepositoryError>.Succeed();
+            return Result.Succeed();
         }
 
         new DirectoryInfo(modelRootDirectory).Delete(true);
-        return Result<ModelsRepositoryError>.Succeed();
+        return Result.Succeed();
+    }
+
+    public async Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(string modelName, ModelGroup modelGroup, Stream modelImageStream, Stream modelBundleStream)
+    {
+        var storageDirectoryResult = this.GetStorageDirectory();
+        if (storageDirectoryResult.TryGetFault(out var fault, out var storageDirectory))
+        {
+            return fault;
+        }
+
+        var newModelId = Guid.NewGuid();
+        var newModelDirectory = Directory.CreateDirectory(Path.Combine(storageDirectory, newModelId.ToString()));
+        var newModelVersionDirectory = newModelDirectory.CreateSubdirectory("0");
+        var versionPath = newModelVersionDirectory.FullName;
+
+        var imageFs = File.Create(Path.Combine(versionPath, "image"));
+#pragma warning disable SA1312
+        await using var _ = imageFs.ConfigureAwait(false);
+#pragma warning restore SA1312
+        await modelImageStream.CopyToAsync(imageFs).ConfigureAwait(false);
+
+        var bundleFs = File.Create(Path.Combine(versionPath, $"{newModelId}{Unity3dExtension}"));
+#pragma warning disable SA1312
+        await using var __ = bundleFs.ConfigureAwait(false);
+#pragma warning restore SA1312
+        await modelBundleStream.CopyToAsync(bundleFs).ConfigureAwait(false);
+
+        var metasCollection = this.mongoCollectionProvider.GetCollection();
+        var meta = new ModelMeta(newModelId, modelName, modelGroup, 0);
+        await metasCollection.InsertOneAsync(meta).ConfigureAwait(false);
+        return meta;
     }
 
     private static Result<ModelsRepositoryError, string> GetModelRootDirectory(string storageDirectory, Guid modelId)
