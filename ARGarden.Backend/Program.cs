@@ -8,9 +8,12 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen();
 
-builder.Services.RegisterDependencies();
+builder.Services
+    .RegisterDependencies();
 
-builder.Configuration.AddEnvironmentVariables("argarden_");
+builder.Configuration
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables("ARGARDEN_");
 
 var app = builder.Build();
 

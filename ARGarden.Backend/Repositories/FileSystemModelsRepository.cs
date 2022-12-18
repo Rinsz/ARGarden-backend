@@ -1,4 +1,6 @@
 ﻿using Kontur.Results;
+using MongoDB.Driver;
+using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Models;
 using ThreeXyNine.ARGarden.Api.Settings;
@@ -9,40 +11,47 @@ namespace ThreeXyNine.ARGarden.Api.Repositories;
 public partial class FileSystemModelsRepository : IModelsRepository
 {
     private readonly FileSystemRepositorySettingsProvider settingsProvider;
+    private readonly IMongoCollectionProvider<ModelMeta> mongoCollectionProvider;
     private readonly ILogger<FileSystemModelsRepository> logger;
 
-    public Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30)
+    public async Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30)
     {
-        var metasStub = new[]
-            {
-                (Id: new Guid("e7338f32-37ca-483c-9cf4-840253d75f72"), Num: 0),
-                (Id: new Guid("6b6b6010-9fdb-40ac-905d-998732b30f20"), Num: 1),
-                (Id: new Guid("70d008dd-0fcc-4985-806e-cfafd86d0476"), Num: 2),
-            }
-            .Skip(skip)
-            .Take(take)
-            .Select(descriptor => new ModelMeta(
-                descriptor.Id,
-                $"Server model {descriptor.Num}",
-                (ModelGroup)Math.Abs(descriptor.Id.GetHashCode() % (Enum.GetNames<ModelGroup>().Length - 1)),
-                0));
+        try
+        {
+            var collection = this.mongoCollectionProvider.GetCollection();
+            var metas = await collection
+                .Find(_ => true)
+                .Skip(skip)
+                .Limit(take)
+                .ToListAsync()
+                .ConfigureAwait(false);
 
-        return Task.FromResult(Result<ModelsRepositoryError, IEnumerable<ModelMeta>>.Succeed(metasStub));
+            return metas;
+        }
+        catch (Exception e)
+        {
+            this.logger.LogError(e, "Failed to get model metas.");
+            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model metas.");
+        }
     }
 
-    public Task<Result<ModelsRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId)
+    public async Task<Result<ModelsRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId)
     {
-        var modelRootDirectoryResult = this.GetStorageDirectory()
-            .Then(storageDir => GetModelRootDirectory(storageDir, modelId))
-            .OnFailure(error => this.logger.LogError(error.ToString()));
-
-        if (modelRootDirectoryResult.TryGetFault(out var fault, out var modelRootDirectory))
+        try
         {
-            return Task.FromResult(Result<ModelsRepositoryError, IEnumerable<int>>.Fail(fault));
-        }
+            var collection = this.mongoCollectionProvider.GetCollection();
+            var metas = await collection
+                .Find(meta => meta.Id == modelId)
+                .ToListAsync()
+                .ConfigureAwait(false);
 
-        var versions = new DirectoryInfo(modelRootDirectory).EnumerateDirectories().Select(x => int.Parse(x.Name));
-        return Task.FromResult(Result<ModelsRepositoryError, IEnumerable<int>>.Succeed(versions));
+            return metas.Select(meta => meta.Version).ToArray();
+        }
+        catch (Exception e)
+        {
+            this.logger.LogError(e, "Failed to get model versions.");
+            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model versions.");
+        }
     }
 
     public async Task<Result<ModelsRepositoryError, byte[]>> GetModelImageAsync(Guid modelId, int version) =>

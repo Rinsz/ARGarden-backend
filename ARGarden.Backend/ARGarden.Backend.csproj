@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Kontur.Results" Version="1.0.1" />
     <PackageReference Include="Kontur.Results.Monad" Version="1.0.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.18.0" />
     <PackageReference Include="PrimaryConstructor" Version="1.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>

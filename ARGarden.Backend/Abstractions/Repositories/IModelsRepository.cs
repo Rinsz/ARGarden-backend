@@ -2,7 +2,7 @@
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Models;
 
-namespace ThreeXyNine.ARGarden.Api.Repositories;
+namespace ThreeXyNine.ARGarden.Api.Abstractions;
 
 public interface IModelsRepository
 {
