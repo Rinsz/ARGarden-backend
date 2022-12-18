@@ -1,6 +1,6 @@
 ﻿namespace ThreeXyNine.ARGarden.Api.Settings;
 
-public class MongoClientProperties
+public record MongoClientProperties
 {
     public string MongoDatabaseName { get; init; } = default!;
 

@@ -70,6 +70,31 @@ public partial class FileSystemModelsRepository : IModelsRepository
                 $"Bundle for model {modelId} with version {version} is not found.")
             .ConfigureAwait(false);
 
+    public async Task<Result<ModelsRepositoryError>> RemoveModelAsync(Guid modelId)
+    {
+        try
+        {
+            var collection = this.mongoCollectionProvider.GetCollection();
+            var filter = Builders<ModelMeta>.Filter.Where(meta => meta.Id == modelId);
+            await collection.DeleteManyAsync(filter).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            this.logger.LogError(e, $"Failed to delete model. ModelId: {modelId}");
+            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to delete model");
+        }
+
+        var modelRootDirectoryResult = this.GetStorageDirectory()
+            .Then(sd => GetModelRootDirectory(sd, modelId));
+        if (modelRootDirectoryResult.TryGetFault(out var fault, out var modelRootDirectory))
+        {
+            return Result<ModelsRepositoryError>.Succeed();
+        }
+
+        new DirectoryInfo(modelRootDirectory).Delete(true);
+        return Result<ModelsRepositoryError>.Succeed();
+    }
+
     private static Result<ModelsRepositoryError, string> GetModelRootDirectory(string storageDirectory, Guid modelId)
     {
         var modelRootDirectory = Path.Combine(storageDirectory, modelId.ToString());

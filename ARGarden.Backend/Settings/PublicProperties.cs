@@ -1,6 +1,6 @@
 ﻿namespace ThreeXyNine.ARGarden.Api.Settings;
 
-public class PublicProperties
+public record PublicProperties
 {
     public MongoClientProperties MongoClientProperties { get; init; } = default!;
 
