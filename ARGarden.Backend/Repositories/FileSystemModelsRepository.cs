@@ -97,7 +97,11 @@ public partial class FileSystemModelsRepository : IModelsRepository
         return Result.Succeed();
     }
 
-    public async Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(string modelName, ModelGroup modelGroup, Stream modelImageStream, Stream modelBundleStream)
+    public async Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        Stream modelBundleStream)
     {
         var storageDirectoryResult = this.GetStorageDirectory();
         if (storageDirectoryResult.TryGetFault(out var fault, out var storageDirectory))
@@ -126,6 +130,47 @@ public partial class FileSystemModelsRepository : IModelsRepository
         var meta = new ModelMeta(newModelId, modelName, modelGroup, 0);
         await metasCollection.InsertOneAsync(meta).ConfigureAwait(false);
         return meta;
+    }
+
+    public async Task<Result<ModelsRepositoryError>> UpdateModelAsync(
+        Guid modelId,
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        Stream modelBundleStream)
+    {
+        var metasCollection = this.mongoCollectionProvider.GetCollection();
+        var modelVersions = await metasCollection.Find(meta => meta.Id == modelId).ToListAsync().ConfigureAwait(false);
+        if (!modelVersions.Any())
+        {
+            return new ModelsRepositoryError(ApiErrorType.NotFound, $"Model with id {modelId} was not found");
+        }
+
+        var newVersion = modelVersions.Max(meta => meta.Version);
+        var modelRootDirectoryResult = this.GetStorageDirectory()
+            .Then(sd => GetModelRootDirectory(sd, modelId));
+        if (modelRootDirectoryResult.TryGetFault(out var fault, out var modelRootDirectory))
+        {
+            return fault;
+        }
+
+        var newVersionPath = Directory.CreateDirectory(Path.Combine(modelRootDirectory, newVersion.ToString())).FullName;
+        var imageFs = File.Create(Path.Combine(newVersionPath, "image"));
+#pragma warning disable SA1312
+        await using var _ = imageFs.ConfigureAwait(false);
+#pragma warning restore SA1312
+        await modelImageStream.CopyToAsync(imageFs).ConfigureAwait(false);
+
+        var bundleFs = File.Create(Path.Combine(newVersionPath, $"{modelId}{Unity3dExtension}"));
+#pragma warning disable SA1312
+        await using var __ = bundleFs.ConfigureAwait(false);
+#pragma warning restore SA1312
+        await modelBundleStream.CopyToAsync(bundleFs).ConfigureAwait(false);
+
+        var meta = new ModelMeta(modelId, modelName, modelGroup, newVersion);
+        await metasCollection.InsertOneAsync(meta).ConfigureAwait(false);
+
+        return Result.Succeed();
     }
 
     private static Result<ModelsRepositoryError, string> GetModelRootDirectory(string storageDirectory, Guid modelId)

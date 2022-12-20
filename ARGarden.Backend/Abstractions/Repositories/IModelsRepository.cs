@@ -21,4 +21,11 @@ public interface IModelsRepository
         ModelGroup modelGroup,
         Stream modelImageStream,
         Stream modelBundleStream);
+
+    Task<Result<ModelsRepositoryError>> UpdateModelAsync(
+        Guid modelId,
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        Stream modelBundleStream);
 }

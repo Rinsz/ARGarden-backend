@@ -28,7 +28,9 @@ public class ModelsAdminController : ControllerBase
     }
 
     [HttpPost("new")]
-    public async Task<ActionResult> CreateModelAsync(CreateModelRequest request)
+#pragma warning disable SA1313
+    public async Task<ActionResult> CreateModelAsync(CreateModelRequest request, IFormFile _)
+#pragma warning restore SA1313
     {
         var (modelName, modelGroup, modelImage, modelBundle) = request;
         if (!SupportedImageContentTypes.Contains(modelImage.ContentType))
@@ -49,6 +51,32 @@ public class ModelsAdminController : ControllerBase
         return createModelResult.TryGetFault(out var fault, out var result)
             ? this.ConvertFaultToActionResult(fault)
             : this.Created(new Uri($"api/models/bundles/{result.Id}/0"), result);
+    }
+
+    [HttpPatch("patch/{modelId:guid}")]
+#pragma warning disable SA1313
+    public async Task<ActionResult> PatchModelAsync(Guid modelId, PatchModelRequest request, IFormFile _)
+#pragma warning restore SA1313
+    {
+        var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
+        if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
+        {
+            return this.ValidationProblem("Unsupported image type received");
+        }
+
+        if (modelBundleFile.ContentType != AssetBundleContentType)
+        {
+            return this.ValidationProblem("Unsupported file received as asset bundle");
+        }
+
+        await using var modelImageStream = modelImageFile.OpenReadStream();
+        await using var modelBundleStream = modelBundleFile.OpenReadStream();
+        var updateModelResult = await this.modelsRepository.UpdateModelAsync(modelId, modelName, modelGroup, modelImageStream, modelBundleStream)
+            .ConfigureAwait(false);
+
+        return updateModelResult.TryGetFault(out var fault)
+            ? this.ConvertFaultToActionResult(fault)
+            : this.Ok();
     }
 
     [HttpDelete("delete/{modelId:guid}")]
