@@ -53,7 +53,7 @@ public class ModelsAdminController : ControllerBase
 
         return createModelResult.TryGetFault(out var fault, out var result)
             ? this.ConvertFaultToActionResult(fault)
-            : this.Created(new Uri($"https://www.argarden.ml/api/models/bundles/{result.Id}/0"), result);
+            : this.Created(new Uri($"https://{this.Request.Host}/api/models/bundles/{result.Id}/0"), result);
     }
 
     [HttpPatch("patch/{modelId:guid}")]
