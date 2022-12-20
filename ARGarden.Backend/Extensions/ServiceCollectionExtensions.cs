@@ -17,10 +17,12 @@ public static class ServiceCollectionExtensions
 
             .AddSingleton<IMongoClientProvider, MongoClientProvider>()
             .AddSingleton<IMongoDatabaseProvider, MongoDatabaseProvider>()
-            .AddSingleton<IMongoCollectionProvider<ModelMeta>, ModelsRepositoryMongoCollectionProvider>()
+            .AddSingleton<IMongoCollectionProvider<ModelMetaInternal>, ModelsRepositoryMongoCollectionProvider>()
 
             .AddSingleton<IModelsRepositorySettingsProvider, ModelsRepositorySettingsProvider>()
             .AddSingleton<IModelsRepository, FileSystemModelsRepository>()
+            .AddSingleton<IModelMetasRepository, MongoModelMetasRepository>()
+            .AddSingleton<IModelFilesRepository, FileSystemModelFilesRepository>()
             .AddSingleton<FileSystemRepositorySettingsProvider>()
             .AddSingleton<IConfigurationProvider, EnvironmentVariablesConfigurationProvider>();
 }
