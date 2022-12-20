@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Mvc;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Extensions;
 using ThreeXyNine.ARGarden.Api.Models;
-using static ThreeXyNine.ARGarden.Api.Constants.ContentTypes;
-using static ThreeXyNine.ARGarden.Api.Constants.FileExtensions;
 
 namespace ThreeXyNine.ARGarden.Api.Controllers;
 
@@ -12,53 +13,35 @@ namespace ThreeXyNine.ARGarden.Api.Controllers;
 [Route("api/admin/models")]
 public class ModelsAdminController : ControllerBase
 {
-    private static readonly IReadOnlySet<string> SupportedAssetBundleContentTypes = new HashSet<string>
-    {
-        AssetBundleContentType,
-        OctetStreamContentType,
-    };
-
-    private static readonly IReadOnlySet<string> SupportedImageContentTypes = new HashSet<string>
-    {
-        JpegContentType,
-        JpgContentType,
-        PngContentType,
-    };
-
-    private static readonly IReadOnlySet<string> SupportedImageExtensions = new HashSet<string>
-    {
-        JpegExtension,
-        JpgExtension,
-        PngExtension,
-    };
-
+    private readonly IValidator<CreateModelRequest> createModelRequestValidator;
+    private readonly IValidator<PatchModelRequest> patchModelRequestValidator;
     private readonly IModelsRepository modelsRepository;
     private readonly ILogger<ModelsAdminController> logger;
 
-    public ModelsAdminController(IModelsRepository modelsRepository, ILogger<ModelsAdminController> logger)
+    public ModelsAdminController(
+        IValidator<CreateModelRequest> createModelRequestValidator,
+        IValidator<PatchModelRequest> patchModelRequestValidator,
+        IModelsRepository modelsRepository,
+        ILogger<ModelsAdminController> logger)
     {
         this.modelsRepository = modelsRepository;
         this.logger = logger;
+        this.createModelRequestValidator = createModelRequestValidator;
+        this.patchModelRequestValidator = patchModelRequestValidator;
     }
 
     [HttpPost("create")]
     public async Task<ActionResult> CreateModelAsync([FromForm] CreateModelRequest request)
     {
-        var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
-        if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
-            return this.ValidationProblem("Unsupported image type received");
+        var validationResult = await this.createModelRequestValidator.ValidateAsync(request).ConfigureAwait(false);
+        if (!validationResult.IsValid)
+            return this.CreateValidationProblem(validationResult);
 
-        if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
-            return this.ValidationProblem("Unsupported file received as asset bundle");
+        var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
 
         await using var modelImageStream = modelImageFile.OpenReadStream();
         var imageExtension = modelImageStream.GetExtension();
-        if (!SupportedImageExtensions.Contains(imageExtension))
-            return this.ValidationProblem("Unsupported image type received");
-
         await using var modelBundleStream = modelBundleFile.OpenReadStream();
-        if (modelBundleStream.GetExtension() != Unity3dExtension)
-            return this.ValidationProblem("Unsupported file received as asset bundle");
 
         var createModelResult = await this.modelsRepository.CreateModelAsync(
                 modelName,
@@ -76,21 +59,14 @@ public class ModelsAdminController : ControllerBase
     [HttpPatch("patch/{modelId:guid}")]
     public async Task<ActionResult> PatchModelAsync(Guid modelId, [FromForm] PatchModelRequest request)
     {
+        var validationResult = await this.patchModelRequestValidator.ValidateAsync(request).ConfigureAwait(false);
+        if (!validationResult.IsValid)
+            return this.CreateValidationProblem(validationResult);
         var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
-        if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
-            return this.ValidationProblem("Unsupported image type received");
-
-        if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
-            return this.ValidationProblem("Unsupported file received as asset bundle");
 
         await using var modelImageStream = modelImageFile.OpenReadStream();
         var imageExtension = modelImageStream.GetExtension();
-        if (!SupportedImageExtensions.Contains(imageExtension))
-            return this.ValidationProblem("Unsupported image type received");
-
         await using var modelBundleStream = modelBundleFile.OpenReadStream();
-        if (modelBundleStream.GetExtension() != Unity3dExtension)
-            return this.ValidationProblem("Unsupported file received as asset bundle");
 
         var updateModelResult = await this.modelsRepository.UpdateModelAsync(
                 modelId,
@@ -127,5 +103,14 @@ public class ModelsAdminController : ControllerBase
             _ => throw new ArgumentOutOfRangeException(nameof(apiErrorType), apiErrorType, "Unprocessable error type received."),
 #pragma warning restore S3928
         };
+    }
+
+    private ActionResult CreateValidationProblem(ValidationResult validationResult)
+    {
+        var errors = validationResult.Errors.ToDictionary(
+            error => error.PropertyName,
+            error => new[] { error.ErrorMessage });
+
+        return this.ValidationProblem(new ValidationProblemDetails(errors) { Status = (int)HttpStatusCode.UnprocessableEntity, });
     }
 }
