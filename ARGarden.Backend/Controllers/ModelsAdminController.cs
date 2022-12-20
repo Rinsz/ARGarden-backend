@@ -2,6 +2,7 @@
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Models;
+using static ThreeXyNine.ARGarden.Api.Constants.ContentTypes;
 
 namespace ThreeXyNine.ARGarden.Api.Controllers;
 
@@ -9,13 +10,17 @@ namespace ThreeXyNine.ARGarden.Api.Controllers;
 [Route("api/admin/models")]
 public class ModelsAdminController : ControllerBase
 {
-    private const string AssetBundleContentType = "application/unity3d";
+    private static readonly IReadOnlySet<string> SupportedAssetBundleContentTypes = new HashSet<string>
+    {
+        AssetBundleContentType,
+        OctetStreamContentType,
+    };
 
     private static readonly IReadOnlySet<string> SupportedImageContentTypes = new HashSet<string>
     {
-        "image/jpg",
-        "image/jpeg",
-        "image/png",
+        JpegContentType,
+        JpgContentType,
+        PngContentType,
     };
 
     private readonly IModelsRepository modelsRepository;
@@ -27,24 +32,22 @@ public class ModelsAdminController : ControllerBase
         this.logger = logger;
     }
 
-    [HttpPost("new")]
-#pragma warning disable SA1313
-    public async Task<ActionResult> CreateModelAsync(CreateModelRequest request, IFormFile _)
-#pragma warning restore SA1313
+    [HttpPost("create")]
+    public async Task<ActionResult> CreateModelAsync([FromForm] CreateModelRequest request)
     {
-        var (modelName, modelGroup, modelImage, modelBundle) = request;
-        if (!SupportedImageContentTypes.Contains(modelImage.ContentType))
+        var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
+        if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
         {
             return this.ValidationProblem("Unsupported image type received");
         }
 
-        if (modelBundle.ContentType != AssetBundleContentType)
+        if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
         {
             return this.ValidationProblem("Unsupported file received as asset bundle");
         }
 
-        await using var modelImageStream = modelImage.OpenReadStream();
-        await using var modelBundleStream = modelBundle.OpenReadStream();
+        await using var modelImageStream = modelImageFile.OpenReadStream();
+        await using var modelBundleStream = modelBundleFile.OpenReadStream();
         var createModelResult = await this.modelsRepository.CreateModelAsync(modelName, modelGroup, modelImageStream, modelBundleStream)
             .ConfigureAwait(false);
 
@@ -54,9 +57,7 @@ public class ModelsAdminController : ControllerBase
     }
 
     [HttpPatch("patch/{modelId:guid}")]
-#pragma warning disable SA1313
-    public async Task<ActionResult> PatchModelAsync(Guid modelId, PatchModelRequest request, IFormFile _)
-#pragma warning restore SA1313
+    public async Task<ActionResult> PatchModelAsync(Guid modelId, [FromForm] PatchModelRequest request)
     {
         var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
         if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
@@ -64,7 +65,7 @@ public class ModelsAdminController : ControllerBase
             return this.ValidationProblem("Unsupported image type received");
         }
 
-        if (modelBundleFile.ContentType != AssetBundleContentType)
+        if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
         {
             return this.ValidationProblem("Unsupported file received as asset bundle");
         }
