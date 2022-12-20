@@ -11,11 +11,16 @@ public interface IModelFilesRepository
 
     Task<Result<ModelFilesRepositoryError>> DeleteModelFilesAsync(Guid modelId);
 
-    Task<Result<ModelFilesRepositoryError>> CreateNewModelFilesAsync(Guid newModelId, Stream modelImageStream, Stream modelBundleStream);
+    Task<Result<ModelFilesRepositoryError>> CreateNewModelFilesAsync(
+        Guid newModelId,
+        Stream modelImageStream,
+        string imageExtension,
+        Stream modelBundleStream);
 
     Task<Result<ModelFilesRepositoryError>> AddFilesForNewModelVersionAsync(
         Guid modelId,
         int modelVersion,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream);
 }

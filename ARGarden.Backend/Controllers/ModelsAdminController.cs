@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
+using ThreeXyNine.ARGarden.Api.Extensions;
 using ThreeXyNine.ARGarden.Api.Models;
 using static ThreeXyNine.ARGarden.Api.Constants.ContentTypes;
+using static ThreeXyNine.ARGarden.Api.Constants.FileExtensions;
 
 namespace ThreeXyNine.ARGarden.Api.Controllers;
 
@@ -23,6 +25,13 @@ public class ModelsAdminController : ControllerBase
         PngContentType,
     };
 
+    private static readonly IReadOnlySet<string> SupportedImageExtensions = new HashSet<string>
+    {
+        JpegExtension,
+        JpgExtension,
+        PngExtension,
+    };
+
     private readonly IModelsRepository modelsRepository;
     private readonly ILogger<ModelsAdminController> logger;
 
@@ -37,18 +46,26 @@ public class ModelsAdminController : ControllerBase
     {
         var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
         if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
-        {
             return this.ValidationProblem("Unsupported image type received");
-        }
 
         if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
-        {
             return this.ValidationProblem("Unsupported file received as asset bundle");
-        }
 
         await using var modelImageStream = modelImageFile.OpenReadStream();
+        var imageExtension = modelImageStream.GetExtension();
+        if (!SupportedImageExtensions.Contains(imageExtension))
+            return this.ValidationProblem("Unsupported image type received");
+
         await using var modelBundleStream = modelBundleFile.OpenReadStream();
-        var createModelResult = await this.modelsRepository.CreateModelAsync(modelName, modelGroup, modelImageStream, modelBundleStream)
+        if (modelBundleStream.GetExtension() != Unity3dExtension)
+            return this.ValidationProblem("Unsupported file received as asset bundle");
+
+        var createModelResult = await this.modelsRepository.CreateModelAsync(
+                modelName,
+                modelGroup,
+                modelImageStream,
+                imageExtension,
+                modelBundleStream)
             .ConfigureAwait(false);
 
         return createModelResult.TryGetFault(out var fault, out var result)
@@ -61,18 +78,27 @@ public class ModelsAdminController : ControllerBase
     {
         var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
         if (!SupportedImageContentTypes.Contains(modelImageFile.ContentType))
-        {
             return this.ValidationProblem("Unsupported image type received");
-        }
 
         if (!SupportedAssetBundleContentTypes.Contains(modelBundleFile.ContentType))
-        {
             return this.ValidationProblem("Unsupported file received as asset bundle");
-        }
 
         await using var modelImageStream = modelImageFile.OpenReadStream();
+        var imageExtension = modelImageStream.GetExtension();
+        if (!SupportedImageExtensions.Contains(imageExtension))
+            return this.ValidationProblem("Unsupported image type received");
+
         await using var modelBundleStream = modelBundleFile.OpenReadStream();
-        var updateModelResult = await this.modelsRepository.UpdateModelAsync(modelId, modelName, modelGroup, modelImageStream, modelBundleStream)
+        if (modelBundleStream.GetExtension() != Unity3dExtension)
+            return this.ValidationProblem("Unsupported file received as asset bundle");
+
+        var updateModelResult = await this.modelsRepository.UpdateModelAsync(
+                modelId,
+                modelName,
+                modelGroup,
+                modelImageStream,
+                imageExtension,
+                modelBundleStream)
             .ConfigureAwait(false);
 
         return updateModelResult.TryGetFault(out var fault)

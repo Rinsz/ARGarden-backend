@@ -20,6 +20,7 @@ public interface IModelsRepository
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream);
 
     Task<Result<ModelsRepositoryError>> UpdateModelAsync(
@@ -27,5 +28,6 @@ public interface IModelsRepository
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream);
 }

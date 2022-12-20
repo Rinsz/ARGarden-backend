@@ -45,10 +45,11 @@ public partial class FileSystemModelsRepository : IModelsRepository
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream)
     {
         var newModelId = Guid.NewGuid();
-        return await this.modelFilesRepository.CreateNewModelFilesAsync(newModelId, modelImageStream, modelBundleStream)
+        return await this.modelFilesRepository.CreateNewModelFilesAsync(newModelId, modelImageStream, imageExtension, modelBundleStream)
             .MapFault(ToModelsRepositoryError)
             .Then(async () =>
                 await this.modelMetasRepository.CreateModelMetaAsync(newModelId, modelName, modelGroup, 0)
@@ -62,6 +63,7 @@ public partial class FileSystemModelsRepository : IModelsRepository
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream)
     {
         var getVersionsResult = await this.modelMetasRepository.GetModelVersionsAsync(modelId)
@@ -82,7 +84,12 @@ public partial class FileSystemModelsRepository : IModelsRepository
         }
 
         var newVersion = modelVersions.Max() + 1;
-        return await this.modelFilesRepository.AddFilesForNewModelVersionAsync(modelId, newVersion, modelImageStream, modelBundleStream)
+        return await this.modelFilesRepository.AddFilesForNewModelVersionAsync(
+                modelId,
+                newVersion,
+                modelImageStream,
+                imageExtension,
+                modelBundleStream)
             .MapFault(ToModelsRepositoryError)
             .Then(async () =>
                 await this.modelMetasRepository.CreateModelMetaAsync(modelId, modelName, modelGroup, newVersion)

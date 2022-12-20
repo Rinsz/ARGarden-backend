@@ -2,14 +2,13 @@
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Settings;
+using static ThreeXyNine.ARGarden.Api.Constants.FileExtensions;
 
 namespace ThreeXyNine.ARGarden.Api.Repositories;
 
 [PrimaryConstructor]
 public partial class FileSystemModelFilesRepository : IModelFilesRepository
 {
-    private const string Unity3dExtension = ".unity3d";
-
     private readonly FileSystemRepositorySettingsProvider settingsProvider;
     private readonly ILogger<FileSystemModelFilesRepository> logger;
 
@@ -17,7 +16,7 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         await this.GetFileBytesFromModelFolderAsync(
                 modelId,
                 version,
-                "image.jpg",
+                "image",
                 $"Image for model {modelId} is not found.")
             .ConfigureAwait(false);
 
@@ -25,8 +24,9 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         await this.GetFileBytesFromModelFolderAsync(
                 modelId,
                 version,
-                $"{modelId}{Unity3dExtension}",
-                $"Bundle for model {modelId} with version {version} is not found.")
+                $"{modelId}",
+                $"Bundle for model {modelId} with version {version} is not found.",
+                Unity3dExtension)
             .ConfigureAwait(false);
 
     public Task<Result<ModelFilesRepositoryError>> DeleteModelFilesAsync(Guid modelId)
@@ -45,6 +45,7 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
     public async Task<Result<ModelFilesRepositoryError>> CreateNewModelFilesAsync(
         Guid newModelId,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream)
     {
         var storageDirectoryResult = this.GetStorageDirectory();
@@ -57,7 +58,7 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         var newModelVersionDirectory = newModelDirectory.CreateSubdirectory("0");
 
         var versionPath = newModelVersionDirectory.FullName;
-        var newImagePath = Path.Combine(versionPath, "image");
+        var newImagePath = Path.Combine(versionPath, $"image{imageExtension}");
         await CreateNewFileAsync(newImagePath, modelImageStream).ConfigureAwait(false);
 
         var newBundlePath = Path.Combine(versionPath, $"{newModelId}{Unity3dExtension}");
@@ -70,6 +71,7 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         Guid modelId,
         int modelVersion,
         Stream modelImageStream,
+        string imageExtension,
         Stream modelBundleStream)
     {
         var modelRootDirectoryResult = this.GetStorageDirectory()
@@ -80,7 +82,7 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         }
 
         var newVersionPath = Directory.CreateDirectory(Path.Combine(modelRootDirectory, modelVersion.ToString())).FullName;
-        var newImagePath = Path.Combine(newVersionPath, "image");
+        var newImagePath = Path.Combine(newVersionPath, $"image{imageExtension}");
         await CreateNewFileAsync(newImagePath, modelImageStream).ConfigureAwait(false);
 
         var newBundlePath = Path.Combine(newVersionPath, $"{modelId}{Unity3dExtension}");
@@ -126,7 +128,8 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         Guid modelId,
         int version,
         string fileName,
-        string fileNotFoundError)
+        string fileNotFoundError,
+        string? fileExtension = null)
     {
         var getDirectoryResult = this.GetStorageDirectory()
             .Then(storageDir => GetModelRootDirectory(storageDir, modelId))
@@ -136,7 +139,15 @@ public partial class FileSystemModelFilesRepository : IModelFilesRepository
         if (getDirectoryResult.TryGetFault(out var fault, out var modelVersionDir))
             return fault;
 
-        var filePath = Path.Combine(modelVersionDir, fileName);
+        if (fileExtension is null)
+        {
+            var guessedFile = new DirectoryInfo(modelVersionDir).EnumerateFiles().SingleOrDefault(file => file.Name.StartsWith(fileName));
+            return guessedFile is not null
+                ? await File.ReadAllBytesAsync(guessedFile.FullName).ConfigureAwait(false)
+                : new ModelFilesRepositoryError(ApiErrorType.InternalServerError, fileNotFoundError);
+        }
+
+        var filePath = Path.Combine(modelVersionDir, $"{fileName}{fileExtension ?? "*"}");
         return File.Exists(filePath)
             ? await File.ReadAllBytesAsync(filePath).ConfigureAwait(false)
             : new ModelFilesRepositoryError(ApiErrorType.InternalServerError, fileNotFoundError);
