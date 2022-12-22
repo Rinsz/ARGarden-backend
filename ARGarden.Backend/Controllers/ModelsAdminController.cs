@@ -37,13 +37,14 @@ public class ModelsAdminController : ControllerBase
         if (!validationResult.IsValid)
             return this.CreateValidationProblem(validationResult);
 
-        var (modelName, modelGroup, modelImageFile, modelBundleFile) = request;
+        var (modelId, modelName, modelGroup, modelImageFile, modelBundleFile) = request;
 
         await using var modelImageStream = modelImageFile.OpenReadStream();
         var imageExtension = modelImageStream.GetExtension();
         await using var modelBundleStream = modelBundleFile.OpenReadStream();
 
         var createModelResult = await this.modelsRepository.CreateModelAsync(
+                modelId,
                 modelName,
                 modelGroup,
                 modelImageStream,
@@ -99,6 +100,7 @@ public class ModelsAdminController : ControllerBase
         {
             ApiErrorType.NotFound => this.NotFound(description),
             ApiErrorType.InternalServerError => this.StatusCode(StatusCodes.Status500InternalServerError),
+            ApiErrorType.Conflict => this.Conflict(description),
 #pragma warning disable S3928
             _ => throw new ArgumentOutOfRangeException(nameof(apiErrorType), apiErrorType, "Unprocessable error type received."),
 #pragma warning restore S3928

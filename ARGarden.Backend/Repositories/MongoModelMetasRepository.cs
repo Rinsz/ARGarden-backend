@@ -12,6 +12,21 @@ public partial class MongoModelMetasRepository : IModelMetasRepository
     private readonly IMongoCollectionProvider<ModelMetaInternal> mongoCollectionProvider;
     private readonly ILogger<MongoModelMetasRepository> logger;
 
+    public async Task<Result<ModelMetasRepositoryError, bool>> ModelExistAsync(Guid modelId)
+    {
+        try
+        {
+            var collection = this.mongoCollectionProvider.GetCollection();
+            var metas = await collection.Find(meta => meta.ModelId == modelId).ToListAsync().ConfigureAwait(false);
+            return metas.Any();
+        }
+        catch (Exception e)
+        {
+            this.logger.LogError(e, $"Failed to check model existence. ModelId: {modelId}");
+            return new ModelMetasRepositoryError(ApiErrorType.InternalServerError, "Failed to check model existence.");
+        }
+    }
+
     public async Task<Result<ModelMetasRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30)
     {
         try

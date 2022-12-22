@@ -17,6 +17,7 @@ public interface IModelsRepository
     Task<Result<ModelsRepositoryError>> RemoveModelAsync(Guid modelId);
 
     Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(
+        Guid modelId,
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,

@@ -4,4 +4,5 @@ public enum ApiErrorType
 {
     InternalServerError,
     NotFound,
+    Conflict,
 }
