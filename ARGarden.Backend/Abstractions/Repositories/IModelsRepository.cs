@@ -13,4 +13,21 @@ public interface IModelsRepository
     Task<Result<ModelsRepositoryError, byte[]>> GetModelImageAsync(Guid modelId, int version);
 
     Task<Result<ModelsRepositoryError, byte[]>> GetModelBundleAsync(Guid modelId, int version);
+
+    Task<Result<ModelsRepositoryError>> RemoveModelAsync(Guid modelId);
+
+    Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        string imageExtension,
+        Stream modelBundleStream);
+
+    Task<Result<ModelsRepositoryError>> UpdateModelAsync(
+        Guid modelId,
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        string imageExtension,
+        Stream modelBundleStream);
 }

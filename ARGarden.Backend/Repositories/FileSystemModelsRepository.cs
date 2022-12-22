@@ -1,116 +1,106 @@
 ﻿using Kontur.Results;
-using MongoDB.Driver;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Models;
-using ThreeXyNine.ARGarden.Api.Settings;
 
 namespace ThreeXyNine.ARGarden.Api.Repositories;
 
 [PrimaryConstructor]
 public partial class FileSystemModelsRepository : IModelsRepository
 {
-    private readonly FileSystemRepositorySettingsProvider settingsProvider;
-    private readonly IMongoCollectionProvider<ModelMeta> mongoCollectionProvider;
+    private readonly IModelMetasRepository modelMetasRepository;
+    private readonly IModelFilesRepository modelFilesRepository;
     private readonly ILogger<FileSystemModelsRepository> logger;
 
-    public async Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30)
-    {
-        try
-        {
-            var collection = this.mongoCollectionProvider.GetCollection();
-            var metas = await collection
-                .Find(_ => true)
-                .Skip(skip)
-                .Limit(take)
-                .ToListAsync()
-                .ConfigureAwait(false);
+    public async Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30) =>
+        await this.modelMetasRepository.GetMetasAsync(skip, take)
+            .MapFault(ToModelsRepositoryError)
+            .ConfigureAwait(false);
 
-            return metas;
-        }
-        catch (Exception e)
-        {
-            this.logger.LogError(e, "Failed to get model metas.");
-            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model metas.");
-        }
-    }
-
-    public async Task<Result<ModelsRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId)
-    {
-        try
-        {
-            var collection = this.mongoCollectionProvider.GetCollection();
-            var metas = await collection
-                .Find(meta => meta.Id == modelId)
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            return metas.Select(meta => meta.Version).ToArray();
-        }
-        catch (Exception e)
-        {
-            this.logger.LogError(e, "Failed to get model versions.");
-            return new ModelsRepositoryError(ApiErrorType.InternalServerError, "Failed to get model versions.");
-        }
-    }
+    public async Task<Result<ModelsRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId) =>
+        await this.modelMetasRepository.GetModelVersionsAsync(modelId)
+            .MapFault(ToModelsRepositoryError)
+            .ConfigureAwait(false);
 
     public async Task<Result<ModelsRepositoryError, byte[]>> GetModelImageAsync(Guid modelId, int version) =>
-        await this.GetFileBytesFromModelFolderAsync(
-                modelId,
-                version,
-                "image.jpg",
-                $"Image for model {modelId} is not found.")
+        await this.modelFilesRepository.GetModelImageAsync(modelId, version)
+            .MapFault(ToModelsRepositoryError)
             .ConfigureAwait(false);
 
     public async Task<Result<ModelsRepositoryError, byte[]>> GetModelBundleAsync(Guid modelId, int version) =>
-        await this.GetFileBytesFromModelFolderAsync(
-                modelId,
-                version,
-                $"{modelId}.unity3d",
-                $"Bundle for model {modelId} with version {version} is not found.")
+        await this.modelFilesRepository.GetModelBundleAsync(modelId, version)
+            .MapFault(ToModelsRepositoryError)
             .ConfigureAwait(false);
 
-    private static Result<ModelsRepositoryError, string> GetModelRootDirectory(string storageDirectory, Guid modelId)
+    public async Task<Result<ModelsRepositoryError>> RemoveModelAsync(Guid modelId) =>
+        await this.modelMetasRepository.DeleteModelMetasAsync(modelId)
+            .MapFault(ToModelsRepositoryError)
+            .Then(async () =>
+                await this.modelFilesRepository.DeleteModelFilesAsync(modelId)
+                    .MapFault(ToModelsRepositoryError)
+                    .ConfigureAwait(false))
+            .ConfigureAwait(false);
+
+    public async Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        string imageExtension,
+        Stream modelBundleStream)
     {
-        var modelRootDirectory = Path.Combine(storageDirectory, modelId.ToString());
-        return Directory.Exists(modelRootDirectory)
-            ? modelRootDirectory
-            : new ModelsRepositoryError(ApiErrorType.NotFound, $"Model with id: {modelId} does not exist.");
+        var newModelId = Guid.NewGuid();
+        return await this.modelFilesRepository.CreateNewModelFilesAsync(newModelId, modelImageStream, imageExtension, modelBundleStream)
+            .MapFault(ToModelsRepositoryError)
+            .Then(async () =>
+                await this.modelMetasRepository.CreateModelMetaAsync(newModelId, modelName, modelGroup, 0)
+                    .MapFault(ToModelsRepositoryError)
+                    .ConfigureAwait(false))
+            .ConfigureAwait(false);
     }
 
-    private static Result<ModelsRepositoryError, string> GetModelVersionDirectory(string modelRootDirectory, int version)
-    {
-        var modelVersionPath = Path.Combine(modelRootDirectory, version.ToString());
-        return Directory.Exists(modelVersionPath)
-            ? modelVersionPath
-            : new ModelsRepositoryError(ApiErrorType.NotFound, $"No such version \"{version}\" of specified model");
-    }
-
-    private Result<ModelsRepositoryError, string> GetStorageDirectory()
-    {
-        var storageDirectory = this.settingsProvider.Get().StoragePath;
-        return Directory.Exists(storageDirectory)
-            ? storageDirectory
-            : new ModelsRepositoryError(ApiErrorType.InternalServerError, "Storage does not exist.");
-    }
-
-    private async Task<Result<ModelsRepositoryError, byte[]>> GetFileBytesFromModelFolderAsync(
+    public async Task<Result<ModelsRepositoryError>> UpdateModelAsync(
         Guid modelId,
-        int version,
-        string fileName,
-        string fileNotFoundError)
+        string modelName,
+        ModelGroup modelGroup,
+        Stream modelImageStream,
+        string imageExtension,
+        Stream modelBundleStream)
     {
-        var getDirectoryResult = this.GetStorageDirectory()
-            .Then(storageDir => GetModelRootDirectory(storageDir, modelId))
-            .Then(modelRootDir => GetModelVersionDirectory(modelRootDir, version))
-            .OnFailure(error => this.logger.LogError(error.ToString()));
+        var getVersionsResult = await this.modelMetasRepository.GetModelVersionsAsync(modelId)
+            .MapFault(ToModelsRepositoryError)
+            .ConfigureAwait(false);
 
-        if (getDirectoryResult.TryGetFault(out var fault, out var modelVersionDir))
+        if (getVersionsResult.TryGetFault(out var fault, out var versions))
+        {
             return fault;
+        }
 
-        var filePath = Path.Combine(modelVersionDir, fileName);
-        return File.Exists(filePath)
-            ? await File.ReadAllBytesAsync(filePath).ConfigureAwait(false)
-            : new ModelsRepositoryError(ApiErrorType.InternalServerError, fileNotFoundError);
+        var modelVersions = versions.ToArray();
+        if (!modelVersions.Any())
+        {
+            var errorString = $"Model with id {modelId} was not found";
+            this.logger.LogError(errorString);
+            return new ModelsRepositoryError(ApiErrorType.NotFound, errorString);
+        }
+
+        var newVersion = modelVersions.Max() + 1;
+        return await this.modelFilesRepository.AddFilesForNewModelVersionAsync(
+                modelId,
+                newVersion,
+                modelImageStream,
+                imageExtension,
+                modelBundleStream)
+            .MapFault(ToModelsRepositoryError)
+            .Then(async () =>
+                await this.modelMetasRepository.CreateModelMetaAsync(modelId, modelName, modelGroup, newVersion)
+                    .MapFault(ToModelsRepositoryError)
+                    .ConfigureAwait(false))
+            .ConfigureAwait(false);
     }
+
+    private static ModelsRepositoryError ToModelsRepositoryError(ModelFilesRepositoryError error) =>
+        new(error.ErrorType, error.Description);
+
+    private static ModelsRepositoryError ToModelsRepositoryError(ModelMetasRepositoryError error) =>
+        new(error.ErrorType, error.Description);
 }

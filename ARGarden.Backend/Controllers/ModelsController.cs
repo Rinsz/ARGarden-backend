@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
 using ThreeXyNine.ARGarden.Api.Models;
+using static ThreeXyNine.ARGarden.Api.Constants.ContentTypes;
 
 namespace ThreeXyNine.ARGarden.Api.Controllers;
 
@@ -47,7 +48,7 @@ public class ModelsController : ControllerBase
         var fileBytesResult = await this.modelsRepository.GetModelImageAsync(modelId, version).ConfigureAwait(false);
 
         return fileBytesResult.TryGetValue(out var fileBytes, out var fault)
-            ? this.File(fileBytes, "image/jpeg")
+            ? this.File(fileBytes, JpegContentType)
             : this.ConvertFaultToActionResult(fault);
     }
 
@@ -58,7 +59,7 @@ public class ModelsController : ControllerBase
         var bundleBytesResult = await this.modelsRepository.GetModelBundleAsync(modelId, version).ConfigureAwait(false);
 
         return bundleBytesResult.TryGetValue(out var bundleBytes, out var fault)
-            ? this.File(bundleBytes, "application/unity3d")
+            ? this.File(bundleBytes, AssetBundleContentType)
             : this.ConvertFaultToActionResult(fault);
     }
 

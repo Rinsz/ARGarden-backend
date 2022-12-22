@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.4.0" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.2.2" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.4.0" />
     <PackageReference Include="Kontur.Results" Version="1.0.1" />
     <PackageReference Include="Kontur.Results.Monad" Version="1.0.1" />
     <PackageReference Include="MongoDB.Driver" Version="2.18.0" />
