@@ -1,3 +1,3 @@
 ﻿namespace ThreeXyNine.ARGarden.Api.Models;
 
-public record CreateModelRequest(string ModelName, ModelGroup ModelGroup, IFormFile ModelImageFile, IFormFile ModelBundleFile);
+public record CreateModelRequest(Guid Id, string ModelName, ModelGroup ModelGroup, IFormFile ModelImageFile, IFormFile ModelBundleFile);

@@ -42,20 +42,28 @@ public partial class FileSystemModelsRepository : IModelsRepository
             .ConfigureAwait(false);
 
     public async Task<Result<ModelsRepositoryError, ModelMeta>> CreateModelAsync(
+        Guid modelId,
         string modelName,
         ModelGroup modelGroup,
         Stream modelImageStream,
         string imageExtension,
         Stream modelBundleStream)
     {
-        var newModelId = Guid.NewGuid();
-        return await this.modelFilesRepository.CreateNewModelFilesAsync(newModelId, modelImageStream, imageExtension, modelBundleStream)
-            .MapFault(ToModelsRepositoryError)
-            .Then(async () =>
-                await this.modelMetasRepository.CreateModelMetaAsync(newModelId, modelName, modelGroup, 0)
-                    .MapFault(ToModelsRepositoryError)
-                    .ConfigureAwait(false))
-            .ConfigureAwait(false);
+        var existenceResult = await this.modelMetasRepository.ModelExistAsync(modelId).ConfigureAwait(false);
+        if (existenceResult.TryGetFault(out var fault, out var modelExist))
+        {
+            return ToModelsRepositoryError(fault);
+        }
+
+        return modelExist
+            ? new ModelsRepositoryError(ApiErrorType.Conflict, $"Model with Id: {modelId} already exists.")
+            : await this.modelFilesRepository.CreateNewModelFilesAsync(modelId, modelImageStream, imageExtension, modelBundleStream)
+                .MapFault(ToModelsRepositoryError)
+                .Then(async () =>
+                    await this.modelMetasRepository.CreateModelMetaAsync(modelId, modelName, modelGroup, 0)
+                        .MapFault(ToModelsRepositoryError)
+                        .ConfigureAwait(false))
+                .ConfigureAwait(false);
     }
 
     public async Task<Result<ModelsRepositoryError>> UpdateModelAsync(

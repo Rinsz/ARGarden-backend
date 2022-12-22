@@ -13,6 +13,7 @@ public class CreateModelRequestValidator : AbstractValidator<CreateModelRequest>
 
     public CreateModelRequestValidator()
     {
+        this.RuleFor(request => request.Id).NotEmpty().NotNull();
         this.RuleFor(request => request.ModelGroup).IsInEnum();
         this.RuleFor(request => request.ModelName).NotEmpty().NotNull().WithErrorCode(ValidationErrorCode);
         this.RuleFor(request => request.ModelImageFile.ContentType).Must(SupportedImageContentTypes.Contains)
