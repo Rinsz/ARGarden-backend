@@ -6,7 +6,11 @@ namespace ThreeXyNine.ARGarden.Api.Abstractions;
 
 public interface IModelsRepository
 {
-    Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30);
+    Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(
+        ModelGroup? modelGroup,
+        string? modelName,
+        int skip,
+        int take);
 
     Task<Result<ModelsRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId);
 

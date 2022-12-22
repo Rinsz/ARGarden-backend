@@ -20,10 +20,20 @@ public class ModelsController : ControllerBase
     }
 
     [HttpGet("metas")]
-    public async Task<ActionResult<IEnumerable<ModelMeta>>> GetModelMetas(int skip = 0, int take = 100)
+    public async Task<ActionResult<IEnumerable<ModelMeta>>> GetModelMetas(
+        ModelGroup? modelGroup,
+        string? modelName,
+        int? skip = 0,
+        int? take = 100)
     {
-        this.logger.LogInformation("Getting available model metas.");
-        var getMetasResult = await this.modelsRepository.GetMetasAsync(skip, take).ConfigureAwait(false);
+        this.logger.LogInformation("Getting available model metas. " +
+                                   $"Filter: \"Group: {modelGroup?.ToString() ?? "any"}; Name: {modelName ?? "*"}\"");
+        if (skip < 0 || take < 0)
+        {
+            return this.ValidationProblem("Skip and take parameters should be greater than zero.");
+        }
+
+        var getMetasResult = await this.modelsRepository.GetMetasAsync(modelGroup, modelName, skip ?? 0, take ?? 100).ConfigureAwait(false);
 
         return getMetasResult.TryGetValue(out var metas, out var fault)
             ? this.Ok(metas)
