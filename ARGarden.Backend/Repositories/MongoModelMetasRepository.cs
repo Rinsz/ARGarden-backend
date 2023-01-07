@@ -1,5 +1,5 @@
-﻿using Kontur.Results;
-using MongoDB.Bson;
+﻿using System.Text.RegularExpressions;
+using Kontur.Results;
 using MongoDB.Driver;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
@@ -41,6 +41,7 @@ public partial class MongoModelMetasRepository : IModelMetasRepository
 
             var metas = await collection
                 .Find(filter)
+                .SortBy(meta => meta.Name)
                 .Skip(skip)
                 .Limit(take)
                 .ToListAsync()
@@ -121,9 +122,8 @@ public partial class MongoModelMetasRepository : IModelMetasRepository
             filters.Add(Builders<ModelMetaInternal>.Filter.Eq(meta => meta.ModelGroup, group));
         if (!string.IsNullOrWhiteSpace(modelName))
         {
-            filters.Add(Builders<ModelMetaInternal>.Filter.Regex(
-                meta => meta.Name,
-                BsonRegularExpression.Create($"/{modelName.ToLowerInvariant()}/")));
+            var regex = new Regex(modelName, RegexOptions.IgnoreCase);
+            filters.Add(Builders<ModelMetaInternal>.Filter.Regex(meta => meta.Name, regex));
         }
 
         var filter = filters.Any()
