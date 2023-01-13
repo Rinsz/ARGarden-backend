@@ -353,3 +353,6 @@ MigrationBackup/
 *.auto.tfvars
 *.tfstate
 *.tfstate.backup
+
+# Rider
+.idea/
