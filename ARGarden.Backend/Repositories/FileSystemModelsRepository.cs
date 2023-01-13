@@ -12,8 +12,12 @@ public partial class FileSystemModelsRepository : IModelsRepository
     private readonly IModelFilesRepository modelFilesRepository;
     private readonly ILogger<FileSystemModelsRepository> logger;
 
-    public async Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30) =>
-        await this.modelMetasRepository.GetMetasAsync(skip, take)
+    public async Task<Result<ModelsRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(
+        ModelGroup? modelGroup,
+        string? modelName,
+        int skip,
+        int take) =>
+        await this.modelMetasRepository.GetMetasAsync(modelGroup, modelName, skip, take)
             .MapFault(ToModelsRepositoryError)
             .ConfigureAwait(false);
 
