@@ -1,4 +1,5 @@
-﻿using Kontur.Results;
+﻿using System.Text.RegularExpressions;
+using Kontur.Results;
 using MongoDB.Driver;
 using ThreeXyNine.ARGarden.Api.Abstractions;
 using ThreeXyNine.ARGarden.Api.Errors;
@@ -27,13 +28,20 @@ public partial class MongoModelMetasRepository : IModelMetasRepository
         }
     }
 
-    public async Task<Result<ModelMetasRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30)
+    public async Task<Result<ModelMetasRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(
+        ModelGroup? modelGroup,
+        string? modelName,
+        int skip,
+        int take)
     {
         try
         {
             var collection = this.mongoCollectionProvider.GetCollection();
+            var filter = BuildFilter(modelGroup, modelName);
+
             var metas = await collection
-                .Find(_ => true)
+                .Find(filter)
+                .SortBy(meta => meta.Name)
                 .Skip(skip)
                 .Limit(take)
                 .ToListAsync()
@@ -105,6 +113,23 @@ public partial class MongoModelMetasRepository : IModelMetasRepository
         }
 
         return Result.Succeed();
+    }
+
+    private static FilterDefinition<ModelMetaInternal> BuildFilter(ModelGroup? modelGroup, string? modelName)
+    {
+        var filters = new List<FilterDefinition<ModelMetaInternal>>();
+        if (modelGroup is { } group)
+            filters.Add(Builders<ModelMetaInternal>.Filter.Eq(meta => meta.ModelGroup, group));
+        if (!string.IsNullOrWhiteSpace(modelName))
+        {
+            var regex = new Regex(modelName, RegexOptions.IgnoreCase);
+            filters.Add(Builders<ModelMetaInternal>.Filter.Regex(meta => meta.Name, regex));
+        }
+
+        var filter = filters.Any()
+            ? Builders<ModelMetaInternal>.Filter.And(filters)
+            : Builders<ModelMetaInternal>.Filter.Empty;
+        return filter;
     }
 
     private static ModelMeta ToModelMeta(ModelMetaInternal internalMeta) =>

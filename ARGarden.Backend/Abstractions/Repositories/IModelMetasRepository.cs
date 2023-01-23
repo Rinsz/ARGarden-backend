@@ -8,7 +8,11 @@ public interface IModelMetasRepository
 {
     Task<Result<ModelMetasRepositoryError, bool>> ModelExistAsync(Guid modelId);
 
-    Task<Result<ModelMetasRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(int skip = 0, int take = 30);
+    Task<Result<ModelMetasRepositoryError, IEnumerable<ModelMeta>>> GetMetasAsync(
+        ModelGroup? modelGroup,
+        string? modelName,
+        int skip,
+        int take);
 
     Task<Result<ModelMetasRepositoryError, IEnumerable<int>>> GetModelVersionsAsync(Guid modelId);
 
