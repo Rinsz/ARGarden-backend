@@ -2,13 +2,16 @@ version: '3.9'
 
 services:
   ar-garden-api:
-    image: cr.yandex/crpbb7ps662qtb3cboho/ar-garden:1.0.1
+    image: cr.yandex/crpbb7ps662qtb3cboho/ar-garden:1.1.2
     container_name: 'ar-garden-api'
     volumes:
       - filesystem-storage:/filesystem-storage
     ports:
       - "80:80"
       - "443:443"
+    expose:
+      - "80"
+      - "443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ARGARDEN_STORAGEPATH=/filesystem-storage
